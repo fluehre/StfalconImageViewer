@@ -1,6 +1,7 @@
 package com.stfalcon.sample.features.demo.grid
 
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import com.stfalcon.imageviewer.StfalconImageViewer
@@ -9,28 +10,30 @@ import com.stfalcon.sample.common.extensions.getDrawableCompat
 import com.stfalcon.sample.common.extensions.loadImage
 import com.stfalcon.sample.common.models.Demo
 import com.stfalcon.sample.common.models.Poster
-import kotlinx.android.synthetic.main.activity_demo_posters_grid.*
+import com.stfalcon.sample.databinding.ActivityDemoPostersGridBinding
 
 class PostersGridDemoActivity : AppCompatActivity() {
 
+    private lateinit var mBinding: ActivityDemoPostersGridBinding
     private lateinit var viewer: StfalconImageViewer<Poster>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_demo_posters_grid)
+        mBinding = ActivityDemoPostersGridBinding.inflate(LayoutInflater.from(this))
+        setContentView(mBinding.root)
 
-        postersGridView.apply {
+        mBinding.postersGridView.apply {
             imageLoader = ::loadPosterImage
             onPosterClick = ::openViewer
         }
     }
 
     private fun openViewer(startPosition: Int, target: ImageView) {
-        viewer = StfalconImageViewer.Builder<Poster>(this, Demo.posters, ::loadPosterImage)
+        viewer = StfalconImageViewer.Builder<Poster>(this, Demo.posters)
             .withStartPosition(startPosition)
             .withTransitionFrom(target)
             .withImageChangeListener {
-                viewer.updateTransitionImage(postersGridView.imageViews[it])
+                viewer.updateTransitionImage(mBinding.postersGridView.imageViews[it])
             }
             .show()
     }

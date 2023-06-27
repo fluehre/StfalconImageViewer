@@ -1,13 +1,13 @@
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
 
 android {
-    compileSdkVersion 29
+    namespace "com.stfalcon.sample"
+    compileSdkVersion project.compileSdkVersion.toInteger()
     defaultConfig {
         applicationId "com.stfalcon.stfalconimageviewersample"
-        minSdkVersion 19
-        targetSdkVersion 29
+        minSdkVersion project.minSdkVersion
+        targetSdkVersion project.targetSdkVersion
         versionCode 1
         versionName "1.0"
 
@@ -18,6 +18,11 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+
+    compileOptions {
+        sourceCompatibility project.javaCompatibility
+        targetCompatibility project.javaCompatibility
     }
 }
 
