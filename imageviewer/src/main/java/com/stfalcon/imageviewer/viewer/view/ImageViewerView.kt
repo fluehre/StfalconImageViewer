@@ -113,7 +113,8 @@ class ImageViewerView<T> @JvmOverloads constructor(
     private var swipeDirection: SwipeDirection? = null
     private var setBackgroundColor: Int? = null
 
-    private var images: List<T> = listOf()
+    var images: List<T> = listOf()
+        private set
     private var imageLoader: ImageLoader<T>? = null
     private lateinit var transitionImageAnimator: TransitionImageAnimator
 
