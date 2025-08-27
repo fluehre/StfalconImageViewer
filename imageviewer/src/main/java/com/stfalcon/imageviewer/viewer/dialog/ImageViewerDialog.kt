@@ -147,8 +147,9 @@ class ImageViewerDialog<T>: DialogFragment() {
             }
             val imageLoader = (targetFragment ?: activity) as? ImageLoader<T>
             if (imageLoader != null) {
+                val images = if (onResume) viewerView.images else builderData.images
                 val position = if (onResume) getCurrentPosition() else builderData.startPosition
-                setImages(builderData.images, position, imageLoader)
+                setImages(images, position, imageLoader)
             }
 
             onPageChange = { position -> ((targetFragment ?: activity) as? OnImageChangeListener)?.onImageChange(position) }
