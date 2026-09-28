@@ -17,15 +17,16 @@
 package com.stfalcon.imageviewer.viewer.dialog
 
 import android.app.Dialog
+import android.os.Build
 import android.os.Bundle
 import android.view.KeyEvent
 import android.widget.ImageView
+import android.window.OnBackInvokedCallback
+import android.window.OnBackInvokedDispatcher
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.DialogFragment
-import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.stfalcon.imageviewer.R
-import com.stfalcon.imageviewer.StfalconImageViewer
 import com.stfalcon.imageviewer.listeners.OnDismissListener
 import com.stfalcon.imageviewer.listeners.OnImageChangeListener
 import com.stfalcon.imageviewer.loader.ImageLoader
@@ -34,13 +35,26 @@ import com.stfalcon.imageviewer.viewer.builder.BuilderData
 import com.stfalcon.imageviewer.viewer.view.ImageViewerView
 import kotlin.math.max
 
-class ImageViewerDialog<T>: DialogFragment() {
+class ImageViewerDialog<T> : DialogFragment() {
 
     lateinit var viewerView: ImageViewerView<T>
 
     private lateinit var dialog: AlertDialog
     private var animateOpen = true
     private lateinit var builderData: BuilderData<T>
+
+    /*
+    * The viewer only intercepted back via AlertDialog.setOnKeyListener { onDialogKeyEvent(...) },
+    * which never fires under the predictive-back system.
+    * As a result the dialog dismissed directly and viewerView.close()
+    * was never called, so the source cell’s visibility was never restored — it stayed INVISIBLE,
+    * exposing the cell’s gray background (@color/gray_40_static).*/
+    private val onBackInvokedCallback: OnBackInvokedCallback? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            OnBackInvokedCallback { handleBackPressed() }
+        } else {
+            null
+        }
 
     private val dialogStyle: Int
         get() = if (builderData.shouldStatusBarHide)
@@ -68,9 +82,15 @@ class ImageViewerDialog<T>: DialogFragment() {
             .setOnKeyListener { _, keyCode, event -> onDialogKeyEvent(keyCode, event) }
             .create()
             .apply {
-                setOnShowListener { viewerView.open(builderData.transitionView, animateOpen) }
-                setOnDismissListener { ((targetFragment ?: activity) as? OnDismissListener)?.onDismiss() }
-}
+                setOnShowListener {
+                    viewerView.open(builderData.transitionView, animateOpen)
+                    registerOnBackInvokedCallback()
+                }
+                setOnDismissListener {
+                    unregisterOnBackInvokedCallback()
+                    ((targetFragment ?: activity) as? OnDismissListener)?.onDismiss()
+                }
+            }
         return dialog
     }
 
@@ -113,14 +133,33 @@ class ImageViewerDialog<T>: DialogFragment() {
             event.action == KeyEvent.ACTION_UP &&
             !event.isCanceled
         ) {
-            if (viewerView.isScaled) {
-                viewerView.resetScale()
-            } else {
-                viewerView.close()
-            }
+            handleBackPressed()
             return true
         }
         return false
+    }
+
+    private fun handleBackPressed() {
+        if (viewerView.isScaled) {
+            viewerView.resetScale()
+        } else {
+            viewerView.close()
+        }
+    }
+
+    private fun registerOnBackInvokedCallback() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val callback = onBackInvokedCallback ?: return
+            dialog.onBackInvokedDispatcher
+                .registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, callback)
+        }
+    }
+
+    private fun unregisterOnBackInvokedCallback() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val callback = onBackInvokedCallback ?: return
+            dialog.onBackInvokedDispatcher.unregisterOnBackInvokedCallback(callback)
+        }
     }
 
     private fun setupViewerView(onResume: Boolean = false) {
